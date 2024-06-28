@@ -1,0 +1,198 @@
+---
+title: "Assignment 1"
+author: "Mateusz Zacharecki"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Source
+
+```{r}
+source('Mateusz_Zacharecki_assignment_1.R')
+
+```
+
+# Attachment of packages
+
+```{r}
+library(sqldf)
+library(dplyr)
+library(data.table)
+library(compare)
+library(microbenchmark)
+
+```
+
+# Reading the data
+
+```{r}
+options(stringsAsFactors=FALSE)
+
+Posts <- read.csv("Posts.csv.gz")
+head(Posts)
+
+Users <- read.csv("Users.csv.gz")
+head(Users)
+
+PostLinks <- read.csv("PostLinks.csv.gz")
+head(PostLinks)
+
+Comments <- read.csv("Comments.csv.gz")
+head(Comments)
+
+```
+
+# Determining the result for sqldf functions only once
+
+```{r}
+sql_1 <- sqldf_1(Posts, Users)
+sql_2 <- sqldf_2(Posts, PostLinks)
+sql_3 <- sqldf_3(Posts, Users, Comments)
+sql_4 <- sqldf_4(Posts, Users)
+sql_5 <- sqldf_5(Posts)
+
+```
+
+# Results of comparing the equivalence of solutions for each task
+
+## For first query
+
+```{r}
+cat("base_1: ")
+compare(sql_1, base_1(Posts, Users), allowAll = T)
+cat("dplyr_1: ")
+compare(sql_1, dplyr_1(Posts, Users), allowAll = T)
+cat("data.table_1: ")
+compare(sql_1, data.table_1(Posts, Users), allowAll = T)
+
+```
+
+## For second query
+
+```{r}
+cat("base_2: ")
+compare(sql_2, base_2(Posts, PostLinks), allowAll = T)
+cat("dplyr_2: ")
+compare(sql_2, dplyr_2(Posts, PostLinks), allowAll = T)
+cat("data.table_2: ")
+compare(sql_2, data.table_2(Posts, Postlinks), allowAll = T)
+
+```
+
+## For third query
+
+```{r}
+cat("base_3: ")
+compare(sql_3, base_3(Posts, Users, Comments), allowAll = T)
+cat("dplyr_3: ")
+compare(sql_3, dplyr_3(Posts, Users, Comments), allowAll = T)
+cat("data.table_3: ")
+compare(sql_3, data.table_3(Posts, Users, Comments), allowAll = T)
+
+```
+
+## For fourth query
+
+```{r}
+cat("base_4: ")
+compare(sql_4, base_4(Posts, Users), allowAll = T)
+cat("dplyr_4: ")
+compare(sql_4, dplyr_4(Posts, Users), allowAll = T)
+cat("data.table_4: ")
+compare(sql_4, data.table_4(Posts, Users), allowAll = T)
+
+```
+
+## For fifth query
+
+```{r}
+cat("base_5: ")
+compare(sql_5, base_5(Posts), allowAll = T)
+cat("dplyr_5: ")
+compare(sql_5, dplyr_5(Posts), allowAll = T)
+cat("data.table_5: ")
+compare(sql_5, data.table_5(Posts), allowAll = T)
+
+```
+
+# Comments on comparisons
+
+All comparisons show that I get the expected solutions. Sometimes I receive information about dropped attributes, but unfortunately I don't know what should be done with that. Using base R for second query I get wrong names and order of columns but according to content of assignment, it can be ignored.
+
+# Measurements of execution times
+
+## For first query
+
+```{r}
+microbenchmark::microbenchmark(
+  base=base_1(Posts, Users),
+  dplyr=dplyr_1(Posts, Users),
+  data.table=data.table_1(Posts, Users)
+)
+
+```
+
+## For second query
+
+```{r}
+microbenchmark::microbenchmark(
+  base=base_2(Posts, PostLinks),
+  dplyr=dplyr_2(Posts, PostLinks),
+  data.table=data.table_2(Posts, PostLinks)
+)
+
+```
+
+## For third query
+
+```{r}
+microbenchmark::microbenchmark(
+  base=base_3(Posts, Users, Comments),
+  dplyr=dplyr_3(Posts, Users, Comments),
+  data.table=data.table_3(Posts, Users, Comments)
+)
+
+```
+
+## For fourth query
+
+```{r}
+microbenchmark::microbenchmark(
+  base=base_4(Posts, Users),
+  dplyr=dplyr_4(Posts, Users),
+  data.table=data.table_4(Posts, Users)
+)
+
+```
+
+## For fifth query
+
+```{r}
+microbenchmark::microbenchmark(
+  base=base_5(Posts),
+  dplyr=dplyr_5(Posts),
+  data.table=data.table_5(Posts)
+)
+
+```
+
+# Comments on execution times
+
+In each of execution time comparison, data.table package turns out to be the fastest. Implementations created using dplyr library are usually 2 times worse than data.table implementations, i.e. the execution time for dplyr library is usually about 2 times longer than for data.table. Definitely the worse implementations are these based on base R - execution time is a couple times longer than using data.table. The exceptional situation is for the fourth query where base R implementation turns out to be better than the one based on dplyr package.
+
+# Queries interpretation
+
+The first query selects the first 10 cities with the highest number of non-empty posts that were posted by users from each country and the number of these posts.
+
+The second query selects titles of posts that are questions and the number of how many postlinks, each title of post is related with, for each question. The titles are sorted decreasing by these numbers.
+
+The third query counts the sum of scores for each post that is a question. In final output we can see the best 10 questions and for each of them there are selected number of comments, number of views, sum of scores received by each question, and also display name of owner of each post, his reputation and location.
+
+In the fourth query there are counted separately all answers and all questions of each user. In final output we can see top 5 users with the biggest number of answers, if it's bigger than their number of questions. There are output display name of each top user, his number of questions and answers, his location and reputation and his up and down votes.
+
+The fifth query selects the highest scores for each ParentId of post which is an answer. I guess that ParentId is an Id of a question for the particular answer. This query joins each best answer with a related question that has at least 50 less points in its score than the answer. The biggest this difference is, the highest is this question in the final table. The final output presents an Id of each selected question, its title, answer for this question with best score, score of post with this question and answer and the difference of scores between them.
+
+# Summary
+
+To my mind, the easiest package to use and learn is dplyr package. Most of its functions are very simple to implement because of their schematicity and intuitiveness in use. It's also the one I like the most, even if data.table package turned out to be faster.
